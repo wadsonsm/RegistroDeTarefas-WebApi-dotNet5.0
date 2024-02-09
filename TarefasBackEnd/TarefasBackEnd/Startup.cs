@@ -14,6 +14,9 @@ using System.Threading.Tasks;
 using TarefasBackEnd.Repositories;
 using Microsoft.EntityFrameworkCore;
 using TarefasBackEnd.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace TarefasBackEnd
 {
@@ -34,7 +37,28 @@ namespace TarefasBackEnd
                 options.UseInMemoryDatabase("DbTarefas");
             });
             services.AddTransient<ITarefaRepository, TarefaRepository>();
+            services.AddTransient<IUsuarioRepository, UsuarioRepository>();
             services.AddControllers();
+
+            var key = Encoding.UTF8.GetBytes("UmTokenMuitGrandeEDiferenteParaNinguemDescobrir");
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+                .AddJwtBearer(options =>
+                {
+                    options.RequireHttpsMetadata = false;
+                    options.SaveToken = true;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(key),
+                        ValidateIssuer = false,
+                        ValidateAudience = false
+                    };
+                });
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "TarefasBackEnd", Version = "v1" });
@@ -54,7 +78,7 @@ namespace TarefasBackEnd
             app.UseHttpsRedirection();
 
             app.UseRouting();
-
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
